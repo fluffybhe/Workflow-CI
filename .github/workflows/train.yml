@@ -1,0 +1,36 @@
+name: Train Model with MLflow
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python 3.12.7
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.12.7
+
+    - name: Check environment
+      run: |
+        python --version
+        pip --version
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run MLflow project
+      run: |
+        python MLProject/modelling.py
+
+    - name: Get latest MLflow run ID
+      run: |
+        mlflow runs list --experiment-ids 0 --order-by attribute.start_time DESC --max-results 1
