@@ -27,10 +27,14 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: Set DAGSHUB_TOKEN
+      run: echo "DAGSHUB_TOKEN=${{ secrets.DAGSHUB_TOKEN }}" >> $GITHUB_ENV
+
     - name: Run MLflow project
       run: |
         python MLProject/modelling.py
 
     - name: Get latest MLflow run ID
       run: |
-        mlflow runs list --experiment-ids 0 --order-by attribute.start_time DESC --max-results 1
+        mlflow runs list --experiment-name california_housing_experiment --order-by attribute.start_time DESC --max-results 1
+
