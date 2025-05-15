@@ -7,6 +7,7 @@ on:
 jobs:
   train:
     runs-on: ubuntu-latest
+
     env:
       DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
       DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
@@ -17,7 +18,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Set up Python
+    - name: Set up Python 3.12
       uses: actions/setup-python@v4
       with:
         python-version: 3.12
@@ -27,11 +28,11 @@ jobs:
         pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Configure .netrc for DagsHub
+    - name: Configure .netrc for DagsHub authentication
       run: |
         echo "machine dagshub.com login $DAGSHUB_TOKEN password" > ~/.netrc
         chmod 600 ~/.netrc
 
-    - name: Run model training
+    - name: Run model training script
       run: python MLProject/modelling.py
 
