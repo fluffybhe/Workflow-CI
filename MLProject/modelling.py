@@ -1,58 +1,49 @@
-import os
-import pandas as pd
-import numpy as np
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error
-import mlflow
-import mlflow.sklearn
-import dagshub
+name: Train Model with MLflow
 
-# Inisialisasi DagsHub + MLflow
-dagshub.init(
-    repo_owner='fluffybhe',
-    repo_name='Eksperimen_SML_Febhe',
-    mlflow=True
-)
-mlflow.set_tracking_uri("https://dagshub.com/fluffybhe/Eksperimen_SML_Febhe.mlflow")
-mlflow.set_experiment("california_housing_experiment")
+on:
+  push:
+    branches: [main]
 
-# Load data
-data_path = "MLProject/processed_california_housing.csv"
-data = pd.read_csv(data_path)
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    env:
+      DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+      DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
 
-# Preprocessing
-data['total_bedrooms'] = data['total_bedrooms'].fillna(data['total_bedrooms'].mean()).astype('float64')
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-# Pisahkan fitur dan target
-X = data.drop("median_house_value", axis=1)
-y = data["median_house_value"]
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.12
 
-# Bagi data
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
 
-# Aktifkan autologging MLflow
-mlflow.sklearn.autolog()
+    - name: Debug DAGSHUB_TOKEN
+      run: |
+        echo "Token length: ${#DAGSHUB_TOKEN}"
+        echo "First 5 chars of token: ${DAGSHUB_TOKEN:0:5}"
 
-# Mulai eksperimen
-with mlflow.start_run(run_name="random_forest_complete") as run:
-    # Inisialisasi dan latih model
-    model = RandomForestRegressor(n_estimators=100, random_state=42)
-    model.fit(X_train, y_train)
+    - name: Configure .netrc for DagsHub
+      run: |
+        echo "machine dagshub.com login $DAGSHUB_TOKEN password" > ~/.netrc
+        chmod 600 ~/.netrc
 
-    # Prediksi
-    y_pred = model.predict(X_test)
+    - name: Set MLflow authentication environment variables
+      run: echo "MLflow env set"
+      env:
+        MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+        MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
 
-    # Hitung dan log metrik MAE
-    mae = mean_absolute_error(y_test, y_pred)
-    mlflow.log_metric("mae", mae)
-
-    # Simpan model eksplisit (opsional, karena autolog sudah menangani ini)
-    mlflow.sklearn.log_model(model, "random_forest_model")
-
-    print(f"Training selesai, MAE: {mae:.2f}")
-    print(f"Run ID: {run.info.run_id}")
-
-
+    - name: Run model training
+      run: |
+        python MLProject/modelling.py
+      env:
+        MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+        MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
