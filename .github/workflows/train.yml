@@ -1,4 +1,4 @@
-name: Train Model with MLflow
+name: Train Model with MLflow via DagsHub
 
 on:
   push:
@@ -28,9 +28,17 @@ jobs:
         pip install -r requirements.txt
 
     - name: Run MLflow project
+      env:
+        # Jangan tulis token langsung di sini!
+        MLFLOW_TRACKING_USERNAME: fluffybhe
+        MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
       run: |
         python MLProject/modelling.py
 
     - name: Get latest MLflow run ID
+      env:
+        MLFLOW_TRACKING_USERNAME: fluffybhe
+        MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
       run: |
         mlflow runs list --experiment-ids 0 --order-by attribute.start_time DESC --max-results 1
+
