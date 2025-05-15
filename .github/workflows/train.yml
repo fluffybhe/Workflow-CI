@@ -1,38 +1,36 @@
-name: ML Pipeline
+name: Train Model with MLflow
 
-on: [push, workflow_dispatch]
+on:
+  push:
+    branches: [main]
 
 jobs:
-  run-experiment:
+  train:
     runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
 
-    - name: Set up Python
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python 3.12.7
       uses: actions/setup-python@v4
       with:
-        python-version: '3.10'
+        python-version: 3.12.7
 
-    - name: Install packages
+    - name: Check environment
       run: |
-        pip install --upgrade pip
-        pip install dagshub==0.3.5  # Versi spesifik yang stabil
-        pip install mlflow==2.3.2 scikit-learn pandas numpy joblib
-        pip install "dagshub>=0.3.4,<0.4.0"  # Double insurance
+        python --version
+        pip --version
 
-    - name: Verify imports
+    - name: Install dependencies
       run: |
-        python -c "
-        try:
-            from dagshub import dagshub
-            print('✅ DagsHub import sukses!')
-        except ImportError as e:
-            print(f'❌ Gagal import: {e}')
-            raise
-        "
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-    - name: Run experiment
-      env:
-        DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+    - name: Run MLflow project
       run: |
         python MLProject/modelling.py
+
+    - name: Get latest MLflow run ID
+      run: |
+        mlflow runs list --experiment-ids 0 --order-by attribute.start_time DESC --max-results 1
