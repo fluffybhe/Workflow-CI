@@ -7,8 +7,13 @@ from sklearn.metrics import mean_absolute_error
 import mlflow
 import mlflow.sklearn
 import dagshub
+import joblib
 
-# Inisialisasi DagsHub + MLflow
+# Debug: cek environment variable
+print("Username:", os.getenv("MLFLOW_TRACKING_USERNAME"))
+print("Token is set:", bool(os.getenv("MLFLOW_TRACKING_PASSWORD")))
+
+# Inisialisasi DagsHub + MLflow (token di-pick dari env)
 dagshub.init(repo_owner='fluffybhe', repo_name='Eksperimen_SML_Febhe', mlflow=True)
 mlflow.set_tracking_uri("https://dagshub.com/fluffybhe/Eksperimen_SML_Febhe.mlflow")
 mlflow.set_experiment("california_housing_experiment")
@@ -32,4 +37,9 @@ with mlflow.start_run(run_name="random_forest_complete"):
     mae = mean_absolute_error(y_test, y_pred)
     mlflow.log_metric("mae", mae)
 
+    # Simpan model sebagai artifact
+    joblib.dump(model, "random_forest_model.pkl")
+    mlflow.log_artifact("random_forest_model.pkl")
+
     print(f"Training selesai, MAE: {mae:.2f}")
+
