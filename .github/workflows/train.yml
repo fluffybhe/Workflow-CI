@@ -7,34 +7,45 @@ on:
 jobs:
   train:
     runs-on: ubuntu-latest
+    env:
+      DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+      DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Set up Python 3.12.7
+    - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: 3.12.7
-
-    - name: Check environment
-      run: |
-        python --version
-        pip --version
+        python-version: 3.12
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
+        pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Set DAGSHUB_TOKEN
-      run: echo "DAGSHUB_TOKEN=${{ secrets.DAGSHUB_TOKEN }}" >> $GITHUB_ENV
+    - name: Debug DAGSHUB_TOKEN
+      run: |
+        echo "Token length: ${#DAGSHUB_TOKEN}"
+        echo "First 5 chars of token: ${DAGSHUB_TOKEN:0:5}"
 
-    - name: Run MLflow project
+    - name: Configure .netrc for DagsHub
+      run: |
+        echo "machine dagshub.com login $DAGSHUB_TOKEN password" > ~/.netrc
+        chmod 600 ~/.netrc
+
+    - name: Set MLflow authentication environment variables
+      run: echo "MLflow env set"
+      env:
+        MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+        MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
+
+    - name: Run model training
       run: |
         python MLProject/modelling.py
+      env:
+        MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+        MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
 
-    - name: Get latest MLflow run ID
-      run: |
-        mlflow runs list --experiment-name california_housing_experiment --order-by attribute.start_time DESC --max-results 1
 
