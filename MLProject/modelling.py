@@ -13,8 +13,14 @@ import joblib
 print("Username:", os.getenv("MLFLOW_TRACKING_USERNAME"))
 print("Token is set:", bool(os.getenv("MLFLOW_TRACKING_PASSWORD")))
 
-# Inisialisasi DagsHub + MLflow (token di-pick dari env)
-dagshub.init(repo_owner='fluffybhe', repo_name='Eksperimen_SML_Febhe', mlflow=True)
+# Inisialisasi DagsHub + MLflow (token diambil dari environment variable)
+dagshub.init(
+    repo_owner='fluffybhe',
+    repo_name='Eksperimen_SML_Febhe',
+    mlflow=True,
+    token=os.getenv("MLFLOW_TRACKING_PASSWORD")
+)
+
 mlflow.set_tracking_uri("https://dagshub.com/fluffybhe/Eksperimen_SML_Febhe.mlflow")
 mlflow.set_experiment("california_housing_experiment")
 
