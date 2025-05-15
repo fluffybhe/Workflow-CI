@@ -1,5 +1,6 @@
-pandas
-numpy
-scikit-learn
 mlflow
 dagshub
+scikit-learn
+pandas
+numpy
+joblib
