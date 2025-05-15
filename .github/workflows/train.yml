@@ -34,3 +34,4 @@ jobs:
 
     - name: Run model training
       run: python MLProject/modelling.py
+
