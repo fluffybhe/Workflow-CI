@@ -1,49 +1,42 @@
-name: Train Model with MLflow
+import os
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error
+import mlflow
+import mlflow.sklearn
+import dagshub
 
-on:
-  push:
-    branches: [main]
+os.environ['MLFLOW_TRACKING_USERNAME'] = os.getenv("MLFLOW_TRACKING_USERNAME")
+os.environ['MLFLOW_TRACKING_PASSWORD'] = os.getenv("MLFLOW_TRACKING_PASSWORD")
 
-jobs:
-  train:
-    runs-on: ubuntu-latest
-    env:
-      DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
-      DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+dagshub.init(
+    repo_owner='fluffybhe',
+    repo_name='Eksperimen_SML_Febhe',
+    mlflow=True
+)
 
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+mlflow.set_tracking_uri("https://dagshub.com/fluffybhe/Eksperimen_SML_Febhe.mlflow")
+mlflow.set_experiment("california_housing_experiment")
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.12
+data_path = "MLProject/processed_california_housing.csv"
+data = pd.read_csv(data_path)
+data['total_bedrooms'] = data['total_bedrooms'].fillna(data['total_bedrooms'].mean()).astype('float64')
 
-    - name: Install dependencies
-      run: |
-        pip install --upgrade pip
-        pip install -r requirements.txt
+X = data.drop("median_house_value", axis=1)
+y = data["median_house_value"]
 
-    - name: Debug DAGSHUB_TOKEN
-      run: |
-        echo "Token length: ${#DAGSHUB_TOKEN}"
-        echo "First 5 chars of token: ${DAGSHUB_TOKEN:0:5}"
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    - name: Configure .netrc for DagsHub
-      run: |
-        echo "machine dagshub.com login $DAGSHUB_TOKEN password" > ~/.netrc
-        chmod 600 ~/.netrc
+mlflow.sklearn.autolog()
 
-    - name: Set MLflow authentication environment variables
-      run: echo "MLflow env set"
-      env:
-        MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
-        MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
+with mlflow.start_run(run_name="random_forest_complete"):
+    model = RandomForestRegressor(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
 
-    - name: Run model training
-      run: |
-        python MLProject/modelling.py
-      env:
-        MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
-        MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
+    mae = mean_absolute_error(y_test, y_pred)
+    mlflow.log_metric("mae", mae)
+
+    print(f"Training selesai, MAE: {mae:.2f}")
